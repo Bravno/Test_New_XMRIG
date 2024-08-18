@@ -119,4 +119,17 @@ else
     echo "XMRig запущен."
 fi
 
+# Отправка статуса на центральный сервер
+MONITOR_SERVER="http://185.237.206.25:5000/update_status"  # Замените на IP-адрес вашего центрального сервера
+
+send_status() {
+    STATUS=$(systemctl is-active xmrig)
+    wget -qO- --post-data "{\"server_ip\": \"$(hostname -I | awk '{print $1}')\", \"status\": \"$STATUS\"}" \
+        --header="Content-Type: application/json" \
+        "$MONITOR_SERVER"
+}
+
+# Отправляем статус после запуска
+send_status
+
 echo "Установка и настройка XMRig завершены успешно."
