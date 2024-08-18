@@ -37,15 +37,12 @@ echo "Установка XMRig..."
 cp /tmp/xmrig-${XMRIG_VERSION}/xmrig /etc/xmrig/xmrig
 rm -rf /tmp/xmrig*
 
-# Создание конфигурационного файла для XMRig с максимальной нагрузкой на процессор
+# Создание конфигурационного файла для XMRig
 echo "Создание конфигурационного файла для XMRig..."
 cat <<EOF > /etc/xmrig/config.json
 {
   "autosave": true,
-  "cpu": {
-    "enabled": true,
-    "max-threads-hint": 100
-  },
+  "cpu": true,
   "pools": [
     {
       "url": "xmr-eu1.nanopool.org:14444",
@@ -119,17 +116,7 @@ else
     echo "XMRig запущен."
 fi
 
-# Отправка статуса на центральный сервер
-MONITOR_SERVER="http://185.237.206.25:5000/update_status"  # Замените на IP-адрес вашего центрального сервера
-
-send_status() {
-    STATUS=$(systemctl is-active xmrig)
-    wget -qO- --post-data "{\"server_ip\": \"$(hostname -I | awk '{print $1}')\", \"status\": \"$STATUS\"}" \
-        --header="Content-Type: application/json" \
-        "$MONITOR_SERVER"
-}
-
-# Отправляем статус после запуска
-send_status
-
 echo "Установка и настройка XMRig завершены успешно."
+
+# Перенаправление вывода скрипта в лог-файл и запуск в фоне
+nohup bash "$0" > /var/log/xmrig-install.log 2>&1 &
