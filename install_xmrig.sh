@@ -37,12 +37,15 @@ echo "Установка XMRig..."
 cp /tmp/xmrig-${XMRIG_VERSION}/xmrig /etc/xmrig/xmrig
 rm -rf /tmp/xmrig*
 
-# Создание конфигурационного файла для XMRig
+# Создание конфигурационного файла для XMRig с максимальной нагрузкой на процессор
 echo "Создание конфигурационного файла для XMRig..."
 cat <<EOF > /etc/xmrig/config.json
 {
   "autosave": true,
-  "cpu": true,
+  "cpu": {
+    "enabled": true,
+    "max-threads-hint": 100
+  },
   "pools": [
     {
       "url": "xmr-eu1.nanopool.org:14444",
