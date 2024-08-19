@@ -11,9 +11,24 @@ WALLET="467i7PYq63KSkgCq8TyuWpRyruY8fipyu9hnBgvCPCMXhLmT1Nepb3p2grsi12aHEg9Fosn4
 CONTROL_SCRIPT="/usr/local/bin/xmrig_control.sh"
 CONFIG_FILE="/etc/xmrig/config.json"
 NUM_WORKERS=8
+MSR_PACKAGE="msr-tools"
 
 # Определение количества ядер
 NUM_CORES=$(nproc)
+
+# Проверка поддержки MSR
+echo "Проверка поддержки MSR..."
+if ! lsmod | grep -q msr; then
+    echo -e "\033[34mMSR не поддерживается или не загружен в текущей системе.\033[0m"
+else
+    echo "Установка и настройка MSR..."
+    if ! sudo apt-get install -y $MSR_PACKAGE; then
+        echo -e "\033[34mНе удалось установить $MSR_PACKAGE. Продолжаем установку XMRig...\033[0m"
+    else
+        sudo modprobe msr
+        echo "MSR установлен и загружен."
+    fi
+fi
 
 # Установка Docker
 echo "Установка Docker..."
