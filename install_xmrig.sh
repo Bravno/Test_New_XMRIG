@@ -26,7 +26,7 @@ tar -xzf /tmp/xmrig.tar.gz -C /tmp
 sudo mv /tmp/xmrig-$XMRIG_VERSION/xmrig $XMRIG_BIN
 sudo chmod +x $XMRIG_BIN
 
-# Генерация конфигурационного файла для XMRig
+# Создание конфигурационного файла для XMRig
 echo "Создание конфигурационного файла для XMRig..."
 sudo mkdir -p /etc/xmrig
 cat <<EOF | sudo tee $CONFIG_FILE
@@ -44,17 +44,9 @@ cat <<EOF | sudo tee $CONFIG_FILE
   "api": {
     "enabled": false,
     "port": 0
-  },
-  "workers": [
+  }
+}
 EOF
-
-for (( i=1; i<=WORKERS_COUNT; i++ )); do
-    echo "    {\"name\": \"worker${i}\"},"
-done | sudo tee -a $CONFIG_FILE
-
-# Завершение конфигурационного файла
-echo '  ]
-}' | sudo tee -a $CONFIG_FILE
 
 # Создание системного сервиса для XMRig
 echo "Создание системного сервиса для XMRig..."
