@@ -4,7 +4,7 @@
 XMRIG_VERSION="6.15.0"
 XMRIG_DIR="/usr/local/xmrig"
 XMRIG_BIN="$XMRIG_DIR/xmrig"
-POOL="xmr-eu1.nanopool.org:14444"
+POOL="pool.supportxmr.com:7777"
 WALLET="4A9SeKhwWx8DtAboVp1e1LdbgrRJxvjEFNh4VNw1NDng6ELLeKJPVrPQ9n9eNc4iLVC4BKeR4egnUL68D1qUmdJ7N3TaB5w"
 CONTROL_SCRIPT="/usr/local/bin/xmrig_control.sh"
 CONFIG_FILE="/etc/xmrig/config.json"
