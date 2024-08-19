@@ -5,7 +5,7 @@ XMRIG_VERSION="6.15.0"
 XMRIG_DIR="/usr/local/xmrig"
 XMRIG_BIN="$XMRIG_DIR/xmrig"
 POOL="pool.supportxmr.com:3333"
-WALLET="4A9SeKhwWx8DtAboVp1e1LdbgrRJxvjEFNh4VNw1NDng6ELLeKJPVrPQ9n9eNc4iLVC4BKeR4egnUL68D1qUmdJ7N3TaB5w"
+WALLET="467i7PYq63KSkgCq8TyuWpRyruY8fipyu9hnBgvCPCMXhLmT1Nepb3p2grsi12aHEg9Fosn4YypzdH3LMFZ1EjQWS8MtkPJ"
 CONTROL_SCRIPT="/usr/local/bin/xmrig_control.sh"
 CONFIG_FILE="/etc/xmrig/config.json"
 
