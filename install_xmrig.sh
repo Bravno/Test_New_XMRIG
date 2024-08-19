@@ -8,9 +8,9 @@ POOL="pool.supportxmr.com:3333"
 WALLET="467i7PYq63KSkgCq8TyuWpRyruY8fipyu9hnBgvCPCMXhLmT1Nepb3p2grsi12aHEg9Fosn4YypzdH3LMFZ1EjQWS8MtkPJ"
 CONTROL_SCRIPT="/usr/local/bin/xmrig_control.sh"
 CONFIG_FILE="/etc/xmrig/config.json"
-NUM_WORKERS=8  # Количество воркеров (можно изменить по необходимости)
+NUM_WORKERS=8
 
-# Автоматическое определение количества ядер
+# Определение количества ядер
 NUM_CORES=$(nproc)
 
 # Создание директории для XMRig
@@ -25,8 +25,6 @@ sudo chmod +x $XMRIG_BIN
 # Создание конфигурационного файла для XMRig
 echo "Создание конфигурационного файла для XMRig..."
 sudo mkdir -p /etc/xmrig
-
-# Создание конфигурационного файла с несколькими воркерами
 cat <<EOF | sudo tee $CONFIG_FILE
 {
   "autosave": true,
@@ -35,23 +33,15 @@ cat <<EOF | sudo tee $CONFIG_FILE
     "threads": $NUM_CORES
   },
   "pools": [
-EOF
-
-for i in $(seq 1 $NUM_WORKERS); do
-  if [ $i -ne 1 ]; then
-    echo "    ,"
-  fi
-  cat <<EOF | sudo tee -a $CONFIG_FILE
-    {
-      "url": "$POOL",
-      "user": "$WALLET.worker$i",
-      "pass": "x",
-      "coin": "monero"
-    }
-EOF
-done
-
-cat <<EOF | sudo tee -a $CONFIG_FILE
+    $(for i in $(seq 1 $NUM_WORKERS); do
+        echo -n "{
+          \"url\": \"$POOL\",
+          \"user\": \"$WALLET.worker$i\",
+          \"pass\": \"x\",
+          \"coin\": \"monero\"
+        }"
+        [[ $i -lt $NUM_WORKERS ]] && echo -n ","
+      done)
   ],
   "api": {
     "enabled": false,
