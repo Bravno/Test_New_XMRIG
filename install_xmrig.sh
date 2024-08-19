@@ -49,7 +49,7 @@ done" | sudo tee $CONTROL_SCRIPT
 sudo chmod +x $CONTROL_SCRIPT
 
 # Добавление скрипта в автозагрузку через crontab
-(crontab -l ; echo "@reboot $CONTROL_SCRIPT") | crontab -
+(crontab -l 2>/dev/null; echo "@reboot $CONTROL_SCRIPT") | crontab -
 
 # Запуск скрипта управления XMRig
 $CONTROL_SCRIPT &
