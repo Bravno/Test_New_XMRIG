@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e  # Завершение скрипта при возникновении ошибки
-
 # Задаем переменные
 XMRIG_VERSION="6.15.0"
 XMRIG_DIR="/usr/local/xmrig"
@@ -23,7 +21,7 @@ if ! lsmod | grep -q msr; then
 else
     echo "Установка и настройка MSR..."
     if ! sudo apt-get install -y $MSR_PACKAGE; then
-        echo -e "\033[34mНе удалось установить $MSR_PACKAGE. Продолжаем установку XMRig...\033[0m"
+        echo -e "\033[31mНе удалось установить $MSR_PACKAGE. Продолжаем установку XMRig...\033[0m"
     else
         sudo modprobe msr
         echo "MSR установлен и загружен."
@@ -32,24 +30,57 @@ fi
 
 # Установка Docker
 echo "Установка Docker..."
-sudo apt-get update
-sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-sudo apt-get update
-sudo apt-get install -y docker-ce
+if ! sudo apt-get update; then
+    echo -e "\033[31mНе удалось обновить списки пакетов.\033[0m"
+fi
+
+if ! sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common; then
+    echo -e "\033[31mНе удалось установить зависимости для Docker.\033[0m"
+fi
+
+if ! curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -; then
+    echo -e "\033[31mНе удалось добавить ключ Docker.\033[0m"
+fi
+
+if ! sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"; then
+    echo -e "\033[31mНе удалось добавить репозиторий Docker.\033[0m"
+fi
+
+if ! sudo apt-get update; then
+    echo -e "\033[31mНе удалось обновить списки пакетов после добавления репозитория Docker.\033[0m"
+fi
+
+if ! sudo apt-get install -y docker-ce; then
+    echo -e "\033[31mНе удалось установить Docker.\033[0m"
+fi
 
 # Запуск и проверка Docker
-sudo systemctl start docker
-sudo systemctl enable docker
-sudo docker --version
+if ! sudo systemctl start docker; then
+    echo -e "\033[31mНе удалось запустить Docker.\033[0m"
+fi
+
+if ! sudo systemctl enable docker; then
+    echo -e "\033[31mНе удалось включить Docker на автозагрузку.\033[0m"
+fi
+
+if ! docker --version; then
+    echo -e "\033[31mНе удалось проверить версию Docker.\033[0m"
+fi
 
 # Установка Docker Compose
 echo "Установка Docker Compose..."
 DOCKER_COMPOSE_VERSION="1.29.2"
-sudo curl -L "https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-docker-compose --version
+if ! sudo curl -L "https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose; then
+    echo -e "\033[31mНе удалось загрузить Docker Compose.\033[0m"
+fi
+
+if ! sudo chmod +x /usr/local/bin/docker-compose; then
+    echo -e "\033[31mНе удалось установить права на выполнение для Docker Compose.\033[0m"
+fi
+
+if ! docker-compose --version; then
+    echo -e "\033[31mНе удалось проверить версию Docker Compose.\033[0m"
+fi
 
 # Создание Dockerfile для XMRig
 echo "Создание Dockerfile..."
@@ -104,15 +135,21 @@ EOF
 
 # Построение Docker-образа
 echo "Построение Docker-образа для XMRig..."
-sudo docker build -t xmrig-image -f $DOCKERFILE_PATH /tmp
+if ! sudo docker build -t xmrig-image -f $DOCKERFILE_PATH /tmp; then
+    echo -e "\033[31mНе удалось построить Docker-образ для XMRig.\033[0m"
+fi
 
 # Запуск контейнера XMRig
 echo "Запуск контейнера XMRig..."
-sudo docker run -d --name xmrig-container xmrig-image
+if ! sudo docker run -d --name xmrig-container xmrig-image; then
+    echo -e "\033[31mНе удалось запустить контейнер XMRig.\033[0m"
+fi
 
 # Проверка состояния контейнера
 echo "Проверка состояния контейнера..."
-sudo docker ps -a
+if ! sudo docker ps -a; then
+    echo -e "\033[31mНе удалось получить состояние контейнеров Docker.\033[0m"
+fi
 
 # Создание скрипта для управления нагрузкой XMRig в зависимости от SSH-подключений
 echo "Создание скрипта управления XMRig..."
@@ -137,12 +174,18 @@ done
 EOF
 
 # Делаем скрипт исполняемым
-sudo chmod +x $CONTROL_SCRIPT
+if ! sudo chmod +x $CONTROL_SCRIPT; then
+    echo -e "\033[31mНе удалось сделать скрипт управления XMRig исполняемым.\033[0m"
+fi
 
 # Добавление скрипта в автозагрузку через crontab
-(crontab -l 2>/dev/null; echo "@reboot $CONTROL_SCRIPT") | crontab -
+if ! (crontab -l 2>/dev/null; echo "@reboot $CONTROL_SCRIPT") | crontab -; then
+    echo -e "\033[31mНе удалось добавить скрипт управления XMRig в автозагрузку.\033[0m"
+fi
 
 # Запуск скрипта управления XMRig
-$CONTROL_SCRIPT &
+if ! $CONTROL_SCRIPT &; then
+    echo -e "\033[31mНе удалось запустить скрипт управления XMRig.\033[0m"
+fi
 
 echo "Установка и настройка завершены."
